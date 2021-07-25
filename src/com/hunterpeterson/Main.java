@@ -11,7 +11,8 @@ static boolean humanBet;
 static int raiseValue;
 static boolean hasChecked;
 static boolean hasHumanFolded;
-
+static boolean hasWon;
+static String winningMessage = "";
 
 
 
@@ -34,6 +35,7 @@ static boolean hasHumanFolded;
 		Robot robot = new Robot("robot");
 
 		while (true) {
+			hasWon = false;
 			Player.resetPotSize();
 			Player.setCardArray(Player.getAllCards());
 			human.setCards();
@@ -241,27 +243,40 @@ static boolean hasHumanFolded;
 
 									if (human.checkRoyalFlush() && robot.checkRoyalFlush()) {
 										window.getDirectionsLabel().setText(human.name + " and " + robot.name + " tie with a royal flush!");
+										winningMessage = human.name + " and " + robot.name + " tie with a royal flush!";
 										human.addMoney((Player.getPotSize() / 2));
 										human.addMoney((Player.getPotSize() / 2));
+										hasWon = true;
 									} else if (human.checkRoyalFlush() && !robot.checkRoyalFlush()) {
 										window.getDirectionsLabel().setText(human.name + " wins with a royal flush!");
 										human.addMoney(Player.getPotSize());
+										winningMessage = human.name + " wins with a royal flush!";
+										hasWon = true;
 									} else if (!human.checkRoyalFlush() && robot.checkRoyalFlush()) {
 										window.getDirectionsLabel().setText(robot.name + " wins with a royal flush!");
 										robot.addMoney(Player.getPotSize());
+										winningMessage = robot.name + " wins with a royal flush!";
+										hasWon = true;
 									}
 
 
-									if (human.checkStraightFlush() == robot.checkStraightFlush() && human.checkStraightFlush() > 0 && robot.checkStraightFlush() > 0) {
+									if (!hasWon && human.checkStraightFlush() == robot.checkStraightFlush() && human.checkStraightFlush() > 0 && robot.checkStraightFlush() > 0) {
 										window.getDirectionsLabel().setText(human.name + " and " + robot.name + " tie with a straight flush!");
 										human.addMoney((Player.getPotSize() / 2));
 										human.addMoney((Player.getPotSize() / 2));
-									} else if (human.checkStraightFlush() > robot.checkStraightFlush()) {
+										System.out.println("Success in straight flush");
+										hasWon = true;
+										winningMessage = human.name + " and " + robot.name + " tie with a straight flush!";
+									} else if (!hasWon && human.checkStraightFlush() > robot.checkStraightFlush()) {
 										window.getDirectionsLabel().setText(human.name + " wins with a straight flush!");
 										human.addMoney(Player.getPotSize());
-									} else if (human.checkStraightFlush() < robot.checkStraightFlush()) {
+										hasWon = true;
+										winningMessage = human.name + " wins with a straight flush!";
+									} else if (!hasWon && human.checkStraightFlush() < robot.checkStraightFlush()) {
 										window.getDirectionsLabel().setText(robot.name + " wins with a straight flush!");
 										robot.addMoney(Player.getPotSize());
+										hasWon = true;
+										winningMessage = robot.name + " wins with a straight flush!";
 									}
 
 
@@ -401,38 +416,38 @@ static boolean hasHumanFolded;
 
 	public static String evaluate(Player a, Player b, int[] aValues, int[] bValues, String handType) {
 		for(int i = 0; i < aValues.length; i++) {
-			if(i == aValues.length - 1 && aValues[i] == bValues[i] && aValues[i] != 0 && bValues[i] != 0) {
+			if(!hasWon && i == aValues.length - 1 && aValues[i] == bValues[i] && aValues[i] != 0 && bValues[i] != 0) {
 				a.addMoney((Player.getPotSize() / 4));
 				b.addMoney((Player.getPotSize() / 4));
 				return a.name + " and " + b.name + " tie with " + handType;
-			} else if (aValues[i] > bValues[i]) {
+			} else if (!hasWon && aValues[i] > bValues[i]) {
 				a.addMoney(Player.getPotSize() / 2);
 				return a.name + " wins with " + handType;
-			} else if (aValues[i] < bValues[i]) {
+			} else if (!hasWon && aValues[i] < bValues[i]) {
 				b.addMoney(Player.getPotSize() / 2);
 				return b.name + " wins with " + handType;
 			}
 		}
-		return "";
+		return winningMessage;
 	}
 
 	public static String evaluatePairs(Player a, Player b, int[] aValues, int[] bValues, String handType) {
 		if(handType.equals("two pair")) {
-			if (aValues[0] == bValues[0] && aValues[1] == bValues[1] && aValues[2] == bValues[2] && aValues[0] != 0 && bValues[0] != 0) {
+			if (!hasWon && aValues[0] == bValues[0] && aValues[1] == bValues[1] && aValues[2] == bValues[2] && aValues[0] != 0 && bValues[0] != 0) {
 				a.addMoney((Player.getPotSize() / 4));
 				b.addMoney((Player.getPotSize() / 4));
 				return a.name + " and " + b.name + " tie with " + handType;
 			}
-			for (int i = 0; i < 3; i++) {
-				if (aValues[i] > bValues[i]) {
-					a.addMoney(Player.getPotSize() / 2);
-					return a.name + " wins with " + handType;
-				} else if (aValues[i] < bValues[i]) {
-					b.addMoney(Player.getPotSize() / 2);
-					return b.name + " wins with " + handType;
-				}
-			}
-		} else if(handType.equals("one pair")) {
+				for (int i = 0; i < 3; i++) {
+					if (aValues[i] > bValues[i]) {
+						a.addMoney(Player.getPotSize() / 2);
+						return a.name + " wins with " + handType;
+					} else if (aValues[i] < bValues[i]) {
+						b.addMoney(Player.getPotSize() / 2);
+						return b.name + " wins with " + handType;
+					}
+					}
+		} else if(!hasWon && handType.equals("one pair")) {
 			if (aValues[0] == bValues[0] && aValues[1] == bValues[1] && aValues[2] == bValues[2] && aValues[3] == bValues[3] && aValues[0] != 0 && bValues[0] != 0) {
 				a.addMoney(Player.getPotSize() / 4);
 				b.addMoney(Player.getPotSize() / 4);
@@ -448,7 +463,7 @@ static boolean hasHumanFolded;
 				}
 			}
 		}
-		return "";
+		return winningMessage;
 	}
 
 

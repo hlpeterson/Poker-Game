@@ -23,11 +23,11 @@ public class Player {
     protected int money;
     public String name;
     protected static int potSize = 0;
-    private static String flop1 = generateCard();
-    private static String flop2 = generateCard();
-    private static String flop3 = generateCard();
-    private static String turn = generateCard();
-    private static String river = generateCard();
+    private static String flop1;
+    private static String flop2;
+    private static String flop3;
+    private static String turn;
+    private static String river;
     public static String[] chars = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"};
 
     public Player() {
