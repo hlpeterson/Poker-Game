@@ -6,6 +6,8 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.sql.*;
+
 public abstract class Main implements ActionListener {
 static boolean humanBet;
 static int raiseValue;
@@ -13,10 +15,18 @@ static boolean hasChecked;
 static boolean hasHumanFolded;
 static boolean hasWon;
 static String winningMessage = "";
+static int preFlopData;
+static int flopData;
+static int turnData;
+static int riverData;
+static int handValueData;
+static int gameState = 0;
+static boolean firstHand = true;
+static int currentID = 0;
 
 
+	public static void main(String[] args) throws SQLException {
 
-	public static void main(String[] args) {
 		Window window = new Window();
 		BufferedImage humanCardImage1 = null;
 		BufferedImage humanCardImage2 = null;
@@ -30,11 +40,30 @@ static String winningMessage = "";
 		BufferedImage cardBack = null;
 
 
-
 		Player human = new Player("human");
 		Robot robot = new Robot("robot");
 
+
 		while (true) {
+			if(firstHand) {
+				Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/poker_data", "root", System.getenv("PASSWORD"));
+				Statement delStatement = connection.createStatement();
+				int delInt = delStatement.executeUpdate("DELETE FROM poker_data");
+				/*
+				String query2 = " INSERT INTO poker_data (id)" + " VALUES (0)";
+				PreparedStatement preparedStatement = connection.prepareStatement(query2);
+				preparedStatement.execute();
+
+				 */
+				connection.close();
+				currentID = 0;
+			}
+			preFlopData = 1000;
+			flopData = 1000;
+			turnData = 1000;
+			riverData = 1000;
+			handValueData = 1000;
+			gameState = 0;
 			hasWon = false;
 			Player.resetPotSize();
 			Player.setCardArray(Player.getAllCards());
@@ -59,7 +88,7 @@ static String winningMessage = "";
 			try {
 				humanCardImage1 = ImageIO.read(new File(human.findCardImage(human.getCard1())));
 				humanCardImage2 = ImageIO.read(new File(human.findCardImage(human.getCard2())));
-				cardBack = ImageIO.read(new File("cardback.jpg"));
+				cardBack = ImageIO.read(new File("card-images/cardback.jpg"));
 
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -105,6 +134,7 @@ static String winningMessage = "";
 						window.getErrorLabel().setText("Please press the check button or enter a bet size and press the bet button to continue.");
 					}
 				}
+				gameState = 1;
 				game(human, robot, window);
 
 				window.getBetField().setText("");
@@ -145,8 +175,8 @@ static String winningMessage = "";
 							}
 						}
 
-
-						game(human, robot, window);
+					gameState = 2;
+					game(human, robot, window);
 						window.getBetField().setText("");
 
 
@@ -180,7 +210,7 @@ static String winningMessage = "";
 									window.getErrorLabel().setText("Please press the check button or enter a bet size and press the bet button to continue.");
 								}
 							}
-
+							gameState = 3;
 							game(human, robot, window);
 							window.getBetField().setText("");
 
@@ -214,6 +244,7 @@ static String winningMessage = "";
 									}
 								}
 
+								gameState = 4;
 								game(human, robot, window);
 								window.getBetField().setText("");
 
@@ -247,16 +278,19 @@ static String winningMessage = "";
 										human.addMoney((Player.getPotSize() / 2));
 										human.addMoney((Player.getPotSize() / 2));
 										hasWon = true;
+										handValueData = 9;
 									} else if (human.checkRoyalFlush() && !robot.checkRoyalFlush()) {
 										window.getDirectionsLabel().setText(human.name + " wins with a royal flush!");
 										human.addMoney(Player.getPotSize());
 										winningMessage = human.name + " wins with a royal flush!";
 										hasWon = true;
+										handValueData = 9;
 									} else if (!human.checkRoyalFlush() && robot.checkRoyalFlush()) {
 										window.getDirectionsLabel().setText(robot.name + " wins with a royal flush!");
 										robot.addMoney(Player.getPotSize());
 										winningMessage = robot.name + " wins with a royal flush!";
 										hasWon = true;
+										handValueData = 9;
 									}
 
 
@@ -267,35 +301,57 @@ static String winningMessage = "";
 										System.out.println("Success in straight flush");
 										hasWon = true;
 										winningMessage = human.name + " and " + robot.name + " tie with a straight flush!";
+										handValueData = 8;
+										firstHand = false;
 									} else if (!hasWon && human.checkStraightFlush() > robot.checkStraightFlush()) {
 										window.getDirectionsLabel().setText(human.name + " wins with a straight flush!");
 										human.addMoney(Player.getPotSize());
 										hasWon = true;
 										winningMessage = human.name + " wins with a straight flush!";
+										handValueData = 8;
+										firstHand = false;
 									} else if (!hasWon && human.checkStraightFlush() < robot.checkStraightFlush()) {
 										window.getDirectionsLabel().setText(robot.name + " wins with a straight flush!");
 										robot.addMoney(Player.getPotSize());
 										hasWon = true;
 										winningMessage = robot.name + " wins with a straight flush!";
+										handValueData = 8;
+										firstHand = false;
 									}
 
 
 									if (!evaluate(human, robot, human.evaluate4Kind(), robot.evaluate4Kind(), "four of a kind").isEmpty()) {
 										window.getDirectionsLabel().setText(evaluate(human, robot, human.evaluate4Kind(), robot.evaluate4Kind(), "four of a kind"));
+										handValueData = 7;
+										firstHand = false;
 									} else if (!evaluate(human, robot, human.checkFullHouse(), robot.checkFullHouse(), "full house").isEmpty()) {
 										window.getDirectionsLabel().setText(evaluate(human, robot, human.checkFullHouse(), robot.checkFullHouse(), "a full house"));
+										handValueData = 6;
+										firstHand = false;
 									} else if (!evaluate(human, robot, human.evaluateFlush(), robot.evaluateFlush(), "flush").isEmpty()) {
 										window.getDirectionsLabel().setText(evaluate(human, robot, human.evaluateFlush(), robot.evaluateFlush(), "a flush"));
+										handValueData = 5;
+										firstHand = false;
 									} else if (!evaluate(human, robot, human.evaluateStraight(), robot.evaluateStraight(), "straight").isEmpty()) {
 										window.getDirectionsLabel().setText(evaluate(human, robot, human.evaluateStraight(), robot.evaluateStraight(), "a straight"));
+										handValueData = 4;
+										firstHand = false;
 									} else if (!evaluate(human, robot, human.evaluateTrips(), robot.evaluateTrips(), "three of a kind").isEmpty()) {
 										window.getDirectionsLabel().setText(evaluate(human, robot, human.evaluateTrips(), robot.evaluateTrips(), "three of a kind"));
+										handValueData = 3;
+										firstHand = false;
 									} else if (!evaluatePairs(human, robot, human.evaluateTwoPair(), robot.evaluateTwoPair(), "two pair").isEmpty()) {
 										window.getDirectionsLabel().setText(evaluatePairs(human, robot, human.evaluateTwoPair(), robot.evaluateTwoPair(), "two pair"));
+										handValueData = 2;
+										firstHand = false;
 									} else if (!evaluatePairs(human, robot, human.evaluateOnePair(), robot.evaluateOnePair(), "one pair").isEmpty()) {
 										window.getDirectionsLabel().setText(evaluatePairs(human, robot, human.evaluateOnePair(), robot.evaluateOnePair(), "one pair"));
+										handValueData = 1;
+										firstHand = false;
 									} else {
 										window.getDirectionsLabel().setText(evaluate(human, robot, human.evaluateHighCard(), robot.evaluateHighCard(), "high card"));
+										handValueData = 0;
+										firstHand = false;
 									}
 
 									while(!window.hasClicked()) {
@@ -311,6 +367,7 @@ static String winningMessage = "";
 										human.addMoney(Player.getPotSize());
 									}
 									foldProcedure(window, human, robot);
+									firstHand = false;
 								}
 							} else {
 								if (hasHumanFolded) {
@@ -319,6 +376,7 @@ static String winningMessage = "";
 									human.addMoney(Player.getPotSize());
 								}
 								foldProcedure(window, human, robot);
+								firstHand = false;
 							}
 						} else {
 							if (hasHumanFolded) {
@@ -327,6 +385,7 @@ static String winningMessage = "";
 								human.addMoney(Player.getPotSize());
 							}
 							foldProcedure(window, human, robot);
+							firstHand = false;
 						}
 					} else {
 						if (hasHumanFolded) {
@@ -335,6 +394,7 @@ static String winningMessage = "";
 							human.addMoney(Player.getPotSize());
 						}
 						foldProcedure(window, human, robot);
+						firstHand = false;
 					}
 
 
@@ -408,6 +468,22 @@ static String winningMessage = "";
 				Window.setAllButtons();
 				human.money = 10000;
 				robot.money = 10000;
+			}
+
+			if(handValueData != 1000) {
+				Connection connection_2 = DriverManager.getConnection("jdbc:mysql://localhost:3306/poker_data", "root", System.getenv("PASSWORD"));
+					String query = " INSERT INTO poker_data (id, preflop, flop, turn, river, value)" + " VALUES (?, ?, ?, ?, ?, ?)";
+					PreparedStatement preparedStatement = connection_2.prepareStatement(query);
+					preparedStatement.setInt(1, currentID);
+					preparedStatement.setInt(2, preFlopData);
+					preparedStatement.setInt(3, flopData);
+					preparedStatement.setInt(4, turnData);
+					preparedStatement.setInt(5, riverData);
+					preparedStatement.setInt(6, handValueData);
+					preparedStatement.execute();
+					connection_2.close();
+					currentID += 1;
+
 			}
 
 		}
@@ -543,6 +619,7 @@ static String winningMessage = "";
 			humanBet = false;
 			hasChecked = true;
 			Window.setWasCheckClicked(false);
+			setData(0);
 			while(!window.hasClicked()) {
 				window.getErrorLabel().setText("Please press the continue button to continue.");
 			}
@@ -575,6 +652,7 @@ static String winningMessage = "";
 			humanBet = false;
 			hasChecked = true;
 			Window.setWasBetClicked(false);
+			setData(0);
 		} else {
 			window.getDirectionsLabel().setText("You have bet " + decision + ".");
 			window.getPotSizeLabel().setText("The pot is now " + Player.getPotSize());
@@ -583,6 +661,7 @@ static String winningMessage = "";
 			Player.setHumanRecent(Integer.parseInt(decision));
 			Window.setWasBetClicked(false);
 			humanBet = true;
+			setData(2);
 		}
 		while(!window.hasClicked()) {
 			window.getErrorLabel().setText("Please press the continue button to continue.");
@@ -610,6 +689,7 @@ static String winningMessage = "";
 		window.getBetField().setText("");
 		humanBet = true;
 		Window.setWasRaiseClicked(false);
+		setData(3);
 		while(!window.hasClicked()) {
 			window.getErrorLabel().setText("Please press the continue button to continue.");
 		}
@@ -634,6 +714,7 @@ static String winningMessage = "";
 				raiseValue = 0;
 				Robot.setRobotRaiseValue();
 				Window.setWasCallClicked(false);
+				setData(1);
 			} else {
 				window.getDirectionsLabel().setText("You have folded. Robot wins!");
 				hasHumanFolded = true;
@@ -687,6 +768,18 @@ static String winningMessage = "";
 		window.getHumanChipsLabel().setText("You have " + human.money + " remaining.");
 		window.getRobotChipsLabel().setText("The robot has " + robot.money + " remaining.");
 		window.getPotSizeLabel().setText("The pot is now 0.");
+	}
+
+	public static void setData(int action) {
+		if(gameState == 1) {
+			preFlopData = action;
+		} else if (gameState == 2) {
+			flopData = action;
+		} else if (gameState == 3) {
+			turnData = action;
+		} else {
+			riverData = action;
+		}
 	}
 
 
