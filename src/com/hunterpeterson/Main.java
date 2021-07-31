@@ -25,7 +25,7 @@ static boolean firstHand = true;
 static int currentID = 0;
 
 
-	public static void main(String[] args) throws SQLException {
+	public static void main(String[] args) throws SQLException, IOException, InterruptedException {
 
 		Window window = new Window();
 		BufferedImage humanCardImage1 = null;
@@ -470,7 +470,7 @@ static int currentID = 0;
 				robot.money = 10000;
 			}
 
-			if(handValueData != 1000) {
+			if(riverData != 1000) {
 				Connection connection_2 = DriverManager.getConnection("jdbc:mysql://localhost:3306/poker_data", "root", System.getenv("PASSWORD"));
 					String query = " INSERT INTO poker_data (id, preflop, flop, turn, river, value)" + " VALUES (?, ?, ?, ?, ?, ?)";
 					PreparedStatement preparedStatement = connection_2.prepareStatement(query);
@@ -724,7 +724,7 @@ static int currentID = 0;
 			}
 	}
 
-	public static void game(Player human, Robot robot, Window window) {
+	public static void game(Player human, Robot robot, Window window) throws IOException, InterruptedException {
 		int counter = 0;
 
 			do {
@@ -780,6 +780,15 @@ static int currentID = 0;
 		} else {
 			riverData = action;
 		}
+	}
+
+	public static int[] getRound() {
+		int[] rounds = {preFlopData, flopData, turnData, riverData};
+		return rounds;
+ 	}
+
+ 	public static boolean getFirstHand() {
+		return firstHand;
 	}
 
 
